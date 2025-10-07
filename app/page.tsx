@@ -3,9 +3,11 @@
 
 import { useState, useEffect } from "react";
 import dynamic from "next/dynamic";
+import Link from "next/link";
 import QuizView from "./components/QuizView";
-import SourceSelector, { Pdf } from "./components/SourceSelector"; // <-- Import Pdf type
-import { createClient } from "@/lib/supabase/client";
+import SourceSelector, { Pdf } from "./components/SourceSelector";
+import { Button } from "@/components/ui/button";
+import { createClient } from "@/lib/supabase/client"
 
 const PdfViewer = dynamic(() => import("./components/PdfViewer"), {
   ssr: false,
@@ -17,7 +19,7 @@ const PdfViewer = dynamic(() => import("./components/PdfViewer"), {
 });
 
 export default function Home() {
-  const [selectedPdf, setSelectedPdf] = useState<Pdf | null>(null); // <-- Use the Pdf type
+  const [selectedPdf, setSelectedPdf] = useState<Pdf | null>(null);
   const supabase = createClient();
 
   useEffect(() => {
@@ -35,17 +37,22 @@ export default function Home() {
   return (
     <div className="flex flex-col md:flex-row h-screen bg-gray-100 dark:bg-gray-900">
       <div className="w-full md:w-1/2 h-1/2 md:h-screen overflow-y-auto border-b md:border-r">
-        {/* Pass the correct storage_path */}
         <PdfViewer file={selectedPdf?.storage_path ?? null} />
       </div>
       <div className="w-full md:w-1/2 p-6 h-1/2 md:h-screen overflow-y-auto">
-        <header className="mb-6">
-          <h1 className="text-3xl font-bold">Revizio</h1>
-          <p className="text-gray-500">Your AI-powered study companion</p>
+        {/* --- THIS HEADER BLOCK WAS MOVED HERE --- */}
+        <header className="flex justify-between items-center mb-6">
+          <div>
+            <h1 className="text-3xl font-bold">Revizio</h1>
+            <p className="text-gray-500">Your AI-powered study companion</p>
+          </div>
+          <Button asChild variant="outline">
+            <Link href="/dashboard">View Progress</Link>
+          </Button>
         </header>
+        {/* --- END OF MOVED BLOCK --- */}
         <SourceSelector onPdfSelect={setSelectedPdf} />
         <main className="mt-6">
-          {/* Pass the correct database id */}
           <QuizView pdfId={selectedPdf?.id ?? null} />
         </main>
       </div>

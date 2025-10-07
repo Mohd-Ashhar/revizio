@@ -147,7 +147,60 @@ export default function QuizView({ pdfId }: QuizViewProps) {
                     </div>
                   ))}
                 </div>
-                {/* You can add SAQs and LAQs here with <Input> and <Textarea> and their own handleAnswerChange calls */}
+                {/* --------------- RENDER SAQs --------------- */}
+                <div>
+                  <h3 className="font-semibold text-lg mb-4">
+                    Short Answer Questions
+                  </h3>
+                  {quizContent.saqs.map((saq, index) => (
+                    <div key={`saq-${index}`} className="mb-6">
+                      <Label
+                        htmlFor={`saq-${index}`}
+                        className="font-medium mb-2 block"
+                      >
+                        {quizContent.mcqs.length + index + 1}. {saq.question}
+                      </Label>
+                      <Input
+                        id={`saq-${index}`}
+                        value={userAnswers[`saq-${index}`] || ""}
+                        onChange={(e) =>
+                          handleAnswerChange(`saq-${index}`, e.target.value)
+                        }
+                        placeholder="Your answer..."
+                      />
+                    </div>
+                  ))}
+                </div>
+
+                {/* --------------- RENDER LAQs --------------- */}
+                <div>
+                  <h3 className="font-semibold text-lg mb-4">
+                    Long Answer Questions
+                  </h3>
+                  {quizContent.laqs.map((laq, index) => (
+                    <div key={`laq-${index}`} className="mb-6">
+                      <Label
+                        htmlFor={`laq-${index}`}
+                        className="font-medium mb-2 block"
+                      >
+                        {quizContent.mcqs.length +
+                          quizContent.saqs.length +
+                          index +
+                          1}
+                        . {laq.question}
+                      </Label>
+                      <Textarea
+                        id={`laq-${index}`}
+                        value={userAnswers[`laq-${index}`] || ""}
+                        onChange={(e) =>
+                          handleAnswerChange(`laq-${index}`, e.target.value)
+                        }
+                        placeholder="Your detailed answer..."
+                      />
+                    </div>
+                  ))}
+                </div>
+
                 <Button onClick={handleSubmit}>Submit Quiz</Button>
               </>
             ) : (
@@ -185,6 +238,45 @@ export default function QuizView({ pdfId }: QuizViewProps) {
                     </div>
                   );
                 })}
+                {/* --------------- SAQ RESULTS --------------- */}
+                {quizContent.saqs.map((saq, index) => (
+                  <div
+                    key={`saq-result-${index}`}
+                    className="mb-6 p-4 rounded-md border bg-gray-50 dark:bg-gray-800"
+                  >
+                    <p className="font-medium mb-2">{saq.question}</p>
+                    <p>
+                      Your answer: {userAnswers[`saq-${index}`] || "No answer"}
+                    </p>
+                    <p className="text-blue-600 mt-1">
+                      Suggested answer: {saq.answer}
+                    </p>
+                    <p className="text-sm text-gray-600 dark:text-gray-400 mt-2">
+                      <span className="font-semibold">Explanation:</span>{" "}
+                      {saq.explanation}
+                    </p>
+                  </div>
+                ))}
+
+                {/* --------------- LAQ RESULTS --------------- */}
+                {quizContent.laqs.map((laq, index) => (
+                  <div
+                    key={`laq-result-${index}`}
+                    className="mb-6 p-4 rounded-md border bg-gray-50 dark:bg-gray-800"
+                  >
+                    <p className="font-medium mb-2">{laq.question}</p>
+                    <p>
+                      Your answer: {userAnswers[`laq-${index}`] || "No answer"}
+                    </p>
+                    <p className="text-blue-600 mt-1">
+                      Suggested answer: {laq.answer}
+                    </p>
+                    <p className="text-sm text-gray-600 dark:text-gray-400 mt-2">
+                      <span className="font-semibold">Explanation:</span>{" "}
+                      {laq.explanation}
+                    </p>
+                  </div>
+                ))}
               </div>
             )}
           </div>
