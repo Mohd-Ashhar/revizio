@@ -1,17 +1,15 @@
+// app/components/PdfViewer.tsx
 "use client";
 
 import { useState } from "react";
 import { Document, Page, pdfjs } from "react-pdf";
 import { createClient } from "@/lib/supabase/client";
 
+// Note: The import paths are back to the `/esm/` version for this specific setup
+import "react-pdf/dist/esm/Page/AnnotationLayer.css";
+import "react-pdf/dist/esm/Page/TextLayer.css";
 
-import "react-pdf/dist/Page/AnnotationLayer.css";
-import "react-pdf/dist/Page/TextLayer.css";
-
-pdfjs.GlobalWorkerOptions.workerSrc = new URL(
-  "pdfjs-dist/build/pdf.worker.min.js",
-  import.meta.url
-).toString();
+pdfjs.GlobalWorkerOptions.workerSrc = `https://cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjs.version}/pdf.worker.min.js`;
 
 interface PdfViewerProps {
   file: string | null;
@@ -39,12 +37,12 @@ export default function PdfViewer({ file }: PdfViewerProps) {
   return (
     <div>
       <Document file={publicURL} onLoadSuccess={onDocumentLoadSuccess}>
-        {Array.from(new Array(numPages), (el, index) => (
+        {Array.from(new Array(numPages || 0), (el, index) => (
           <Page
             key={`page_${index + 1}`}
             pageNumber={index + 1}
-            renderTextLayer={true} // Ensure text layer is rendered
-            renderAnnotationLayer={true} // Ensure annotation layer is rendered
+            renderTextLayer={true}
+            renderAnnotationLayer={true}
           />
         ))}
       </Document>
