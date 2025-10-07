@@ -1,0 +1,9 @@
+{
+  "imports": {
+    "https://esm.sh/@supabase/supabase-js@2": "https://esm.sh/@supabase/supabase-js@2.44.4",
+    "npm:@langchain/openai": "npm:@langchain/openai@0.2.5",
+    "npm:@langchain/core/prompts": "npm:@langchain/core@0.2.22/prompts",
+    "npm:@langchain/core/output_parsers": "npm:@langchain/core@0.2.22/output_parsers",
+    "npm:langchain/document_loaders/fs/pdf": "npm:langchain@0.2.11/document_loaders/fs/pdf"
+  }
+}

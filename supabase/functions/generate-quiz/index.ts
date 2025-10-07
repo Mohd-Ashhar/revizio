@@ -1,3 +1,5 @@
+// supabase/functions/generate-quiz/index.ts
+
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
 import { ChatOpenAI } from 'npm:@langchain/openai'
 import { PromptTemplate } from 'npm:@langchain/core/prompts'
@@ -5,8 +7,6 @@ import { StringOutputParser } from 'npm:@langchain/core/output_parsers'
 import { PDFLoader } from 'npm:langchain/document_loaders/fs/pdf'
 import { corsHeaders } from '../_shared/cors.ts'
 
-// The prompt template is the "recipe" for our AI.
-// It tells the AI exactly what to do and how to format its response.
 const PROMPT_TEMPLATE = `
 You are an expert at creating educational quizzes for students.
 Given the following content from a textbook, generate a quiz with 3 Multiple Choice Questions (MCQs), 1 Short Answer Question (SAQ), and 1 Long Answer Question (LAQ).
@@ -46,7 +46,6 @@ Here is the textbook content:
 `
 
 Deno.serve(async (req) => {
-  // This is needed for CORS preflight requests.
   if (req.method === 'OPTIONS') {
     return new Response('ok', { headers: corsHeaders })
   }
@@ -55,14 +54,12 @@ Deno.serve(async (req) => {
     const { pdf_id } = await req.json()
     if (!pdf_id) throw new Error('pdf_id is required')
 
-    // Initialize Supabase client
     const supabaseClient = createClient(
       Deno.env.get('SUPABASE_URL') ?? '',
       Deno.env.get('SUPABASE_ANON_KEY') ?? '',
       { global: { headers: { Authorization: req.headers.get('Authorization')! } } }
     )
 
-    // 1. Get the PDF's storage path from the database
     const { data: pdfData, error: pdfError } = await supabaseClient
       .from('pdfs')
       .select('storage_path')
@@ -73,7 +70,6 @@ Deno.serve(async (req) => {
       throw new Error(`Failed to retrieve PDF data: ${pdfError?.message || 'Not found'}`)
     }
 
-    // 2. Download the PDF file from Supabase Storage
     const { data: fileData, error: downloadError } = await supabaseClient
       .storage
       .from('pdfs')
@@ -83,28 +79,26 @@ Deno.serve(async (req) => {
       throw new Error(`Failed to download PDF: ${downloadError?.message || 'No data'}`)
     }
 
-    // 3. Extract text from the PDF using LangChain's PDFLoader
-    const loader = new PDFLoader(fileData)
+    // --- THIS IS THE FIX ---
+    // Use the PDFLoader constructor that accepts a Blob directly.
+    const loader = new PDFLoader(fileData, { splitPages: false });
     const docs = await loader.load()
     const content = docs.map(doc => doc.pageContent).join('\n\n')
+    // --- END OF FIX ---
 
-    // 4. Set up the LangChain prompt and model
     const prompt = PromptTemplate.fromTemplate(PROMPT_TEMPLATE)
     const model = new ChatOpenAI({
       openAIApiKey: Deno.env.get('OPENAI_API_KEY'),
-      modelName: 'gpt-3.5-turbo-1106', // Optimized for JSON output
+      modelName: 'gpt-3.5-turbo-1106',
       temperature: 0.1,
     })
     const outputParser = new StringOutputParser()
     const chain = prompt.pipe(model).pipe(outputParser)
 
-    // 5. Invoke the AI to generate the quiz, limiting content size to avoid API errors
     const llmResponse = await chain.invoke({ content: content.substring(0, 16000) })
 
-    // 6. Parse the JSON response
     const quizContent = JSON.parse(llmResponse)
 
-    // 7. Save the generated quiz to the 'quizzes' table
     const { data: quizData, error: insertError } = await supabaseClient
       .from('quizzes')
       .insert({
@@ -118,13 +112,11 @@ Deno.serve(async (req) => {
       throw insertError
     }
 
-    // 8. Return the newly created quiz
     return new Response(JSON.stringify({ quiz: quizData }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       status: 200,
     })
   } catch (error) {
-    // Return a detailed error message for easier debugging
     return new Response(JSON.stringify({ error: error.message }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       status: 400,
