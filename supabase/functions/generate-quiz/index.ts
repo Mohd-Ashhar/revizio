@@ -20,6 +20,7 @@ The JSON object should follow this exact structure:
   "mcqs": [
     {{
       "question": "The question text here.",
+       "topic": "A one or two-word topic for this question (e.g., 'Kinematics', 'Newton's Laws').",
       "options": ["Option A", "Option B", "Option C", "Option D"],
       "answer": "The correct option text.",
       "explanation": "A brief explanation of why this is the correct answer."
@@ -28,6 +29,7 @@ The JSON object should follow this exact structure:
   "saqs": [
     {{
       "question": "The short answer question here.",
+       "topic": "A one or two-word topic for this question (e.g., 'Kinematics', 'Newton's Laws').",
       "answer": "A concise, correct answer.",
       "explanation": "A brief explanation of the concept."
     }}
@@ -35,6 +37,7 @@ The JSON object should follow this exact structure:
   "laqs": [
     {{
       "question": "The long answer question here.",
+       "topic": "A one or two-word topic for this question (e.g., 'Kinematics', 'Newton's Laws').",
       "answer": "A comprehensive, correct answer.",
       "explanation": "A detailed explanation of the topic."
     }}

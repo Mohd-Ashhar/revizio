@@ -11,22 +11,24 @@ interface QuizViewProps {
   pdfId: string | null;
 }
 
-// Define more specific types for clarity
 interface MCQ {
   question: string;
   options: string[];
   answer: string;
   explanation: string;
+  topic?: string; // Added topic
 }
 interface SAQ {
   question: string;
   answer: string;
   explanation: string;
+  topic?: string; // Added topic
 }
 interface LAQ {
   question: string;
   answer: string;
   explanation: string;
+  topic?: string; // Added topic
 }
 interface QuizContent {
   mcqs: MCQ[];
@@ -39,8 +41,6 @@ export default function QuizView({ pdfId }: QuizViewProps) {
   const [quizContent, setQuizContent] = useState<QuizContent | null>(null);
   const [quizId, setQuizId] = useState<number | null>(null);
   const [isLoading, setIsLoading] = useState(false);
-
-  // New state variables for handling answers and results
   const [userAnswers, setUserAnswers] = useState<Record<string, string>>({});
   const [score, setScore] = useState<number | null>(null);
   const [showResults, setShowResults] = useState(false);
@@ -48,23 +48,19 @@ export default function QuizView({ pdfId }: QuizViewProps) {
   const generateQuiz = async () => {
     if (!pdfId) return;
     setIsLoading(true);
-
     const {
       data: { session },
     } = await supabase.auth.getSession();
     if (session) {
       const { data, error } = await supabase.functions.invoke("generate-quiz", {
         body: JSON.stringify({ pdf_id: pdfId }),
-        headers: {
-          Authorization: `Bearer ${session.access_token}`,
-        },
+        headers: { Authorization: `Bearer ${session.access_token}` },
       });
       if (error) {
         console.error("Quiz generation error:", error);
       } else {
-        // Reset state for new quiz
         setQuizContent(data.quiz.quiz_content);
-        setQuizId(data.quiz.id); // Store the quiz ID
+        setQuizId(data.quiz.id);
         setUserAnswers({});
         setShowResults(false);
         setScore(null);
@@ -73,30 +69,33 @@ export default function QuizView({ pdfId }: QuizViewProps) {
     setIsLoading(false);
   };
 
-  // Function to handle answer changes
   const handleAnswerChange = (questionIndex: string, value: string) => {
     setUserAnswers((prev) => ({ ...prev, [questionIndex]: value }));
   };
 
-  // Function to handle quiz submission
   const handleSubmit = async () => {
     if (!quizContent || !quizId) return;
 
     let calculatedScore = 0;
-    // For this assignment, we will just score the MCQs
-    quizContent.mcqs.forEach((mcq, index) => {
-      if (userAnswers[`mcq-${index}`] === mcq.answer) {
+    const attemptResults = quizContent.mcqs.map((mcq, index) => {
+      const isCorrect = userAnswers[`mcq-${index}`] === mcq.answer;
+      if (isCorrect) {
         calculatedScore++;
       }
+      return {
+        question: mcq.question,
+        topic: mcq.topic || "General",
+        isCorrect: isCorrect,
+      };
     });
 
     setScore(calculatedScore);
-    setShowResults(true); // Switch to the results view
+    setShowResults(true);
 
-    // Store the quiz attempt in your Supabase table
     const { error } = await supabase.from("quiz_attempts").insert({
       quiz_id: quizId,
       score: calculatedScore,
+      results: attemptResults,
     });
 
     if (error) {
@@ -116,7 +115,6 @@ export default function QuizView({ pdfId }: QuizViewProps) {
         {quizContent ? (
           <div className="space-y-8">
             {!showResults ? (
-              // --------------- QUIZ FORM ---------------
               <>
                 <div>
                   <h3 className="font-semibold text-lg mb-4">
@@ -147,7 +145,6 @@ export default function QuizView({ pdfId }: QuizViewProps) {
                     </div>
                   ))}
                 </div>
-                {/* --------------- RENDER SAQs --------------- */}
                 <div>
                   <h3 className="font-semibold text-lg mb-4">
                     Short Answer Questions
@@ -171,8 +168,6 @@ export default function QuizView({ pdfId }: QuizViewProps) {
                     </div>
                   ))}
                 </div>
-
-                {/* --------------- RENDER LAQs --------------- */}
                 <div>
                   <h3 className="font-semibold text-lg mb-4">
                     Long Answer Questions
@@ -200,11 +195,9 @@ export default function QuizView({ pdfId }: QuizViewProps) {
                     </div>
                   ))}
                 </div>
-
                 <Button onClick={handleSubmit}>Submit Quiz</Button>
               </>
             ) : (
-              // --------------- RESULTS VIEW ---------------
               <div>
                 <h2 className="text-2xl font-bold mb-4">Quiz Results</h2>
                 <p className="text-xl mb-6">
@@ -238,7 +231,6 @@ export default function QuizView({ pdfId }: QuizViewProps) {
                     </div>
                   );
                 })}
-                {/* --------------- SAQ RESULTS --------------- */}
                 {quizContent.saqs.map((saq, index) => (
                   <div
                     key={`saq-result-${index}`}
@@ -257,8 +249,6 @@ export default function QuizView({ pdfId }: QuizViewProps) {
                     </p>
                   </div>
                 ))}
-
-                {/* --------------- LAQ RESULTS --------------- */}
                 {quizContent.laqs.map((laq, index) => (
                   <div
                     key={`laq-result-${index}`}
