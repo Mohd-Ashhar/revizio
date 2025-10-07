@@ -4,7 +4,9 @@ import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
 import { ChatOpenAI } from 'npm:@langchain/openai'
 import { PromptTemplate } from 'npm:@langchain/core/prompts'
 import { StringOutputParser } from 'npm:@langchain/core/output_parsers'
-import { PDFLoader } from 'npm:langchain/document_loaders/fs/pdf'
+// We will no longer use PDFLoader from Langchain
+// import { PDFLoader } from 'npm:@langchain/community/document_loaders/fs/pdf' 
+import pdf from 'npm:pdf-parse@1.1.1'
 import { corsHeaders } from '../_shared/cors.ts'
 
 const PROMPT_TEMPLATE = `
@@ -14,30 +16,30 @@ Given the following content from a textbook, generate a quiz with 3 Multiple Cho
 The output MUST be a single, valid JSON object. Do not include any text or markdown formatting before or after the JSON.
 
 The JSON object should follow this exact structure:
-{
+{{
   "mcqs": [
-    {
+    {{
       "question": "The question text here.",
       "options": ["Option A", "Option B", "Option C", "Option D"],
       "answer": "The correct option text.",
       "explanation": "A brief explanation of why this is the correct answer."
-    }
+    }}
   ],
   "saqs": [
-    {
+    {{
       "question": "The short answer question here.",
       "answer": "A concise, correct answer.",
       "explanation": "A brief explanation of the concept."
-    }
+    }}
   ],
   "laqs": [
-    {
+    {{
       "question": "The long answer question here.",
       "answer": "A comprehensive, correct answer.",
       "explanation": "A detailed explanation of the topic."
-    }
+    }}
   ]
-}
+}}
 
 Here is the textbook content:
 ---
@@ -80,10 +82,11 @@ Deno.serve(async (req) => {
     }
 
     // --- THIS IS THE FIX ---
-    // Use the PDFLoader constructor that accepts a Blob directly.
-    const loader = new PDFLoader(fileData, { splitPages: false });
-    const docs = await loader.load()
-    const content = docs.map(doc => doc.pageContent).join('\n\n')
+    // Convert the downloaded Blob to a Buffer that pdf-parse can read
+    const arrayBuffer = await fileData.arrayBuffer();
+    const buffer = new Uint8Array(arrayBuffer);
+    const parsedPdf = await pdf(buffer);
+    const content = parsedPdf.text;
     // --- END OF FIX ---
 
     const prompt = PromptTemplate.fromTemplate(PROMPT_TEMPLATE)
