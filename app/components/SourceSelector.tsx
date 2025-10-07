@@ -1,6 +1,6 @@
+// app/components/SourceSelector.tsx
 import { useState, useEffect } from "react";
 import { createClient } from "@/lib/supabase/client";
-import { Button } from "@/components/ui/button";
 import {
   Select,
   SelectContent,
@@ -10,33 +10,40 @@ import {
 } from "@/components/ui/select";
 import FileUpload from "./FileUpload";
 
-interface Pdf {
+// 1. Export the Pdf interface
+export interface Pdf {
   id: string;
   file_name: string;
   storage_path: string;
 }
 
 interface SourceSelectorProps {
-  onPdfSelect: (storagePath: string) => void;
+  // 2. Expect the full Pdf object in the callback
+  onPdfSelect: (pdf: Pdf) => void;
 }
 
 export default function SourceSelector({ onPdfSelect }: SourceSelectorProps) {
   const supabase = createClient();
   const [pdfs, setPdfs] = useState<Pdf[]>([]);
-  const [isUploading, setIsUploading] = useState(false);
+
+  // 3. Create a reusable function to fetch PDFs
+  const fetchPdfs = async () => {
+    const { data } = await supabase
+      .from("pdfs")
+      .select("*")
+      .order("created_at", { ascending: false });
+    if (data) setPdfs(data);
+  };
 
   useEffect(() => {
-    async function fetchPdfs() {
-      const { data, error } = await supabase.from("pdfs").select("*");
-      if (data) setPdfs(data);
-    }
     fetchPdfs();
-  }, [supabase]);
+  }, []);
 
   const handleSelect = (pdfId: string) => {
     const selected = pdfs.find((pdf) => pdf.id === pdfId);
     if (selected) {
-      onPdfSelect(selected.storage_path);
+      // 4. Pass the entire object up
+      onPdfSelect(selected);
     }
   };
 
@@ -54,11 +61,8 @@ export default function SourceSelector({ onPdfSelect }: SourceSelectorProps) {
           ))}
         </SelectContent>
       </Select>
-      <FileUpload
-        onUploadSuccess={() => {
-          /* Optionally refresh PDF list */
-        }}
-      />
+      {/* 5. Call fetchPdfs on successful upload to refresh the list */}
+      <FileUpload onUploadSuccess={fetchPdfs} />
     </div>
   );
 }

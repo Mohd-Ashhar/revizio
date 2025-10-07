@@ -36,31 +36,44 @@ export default function FileUpload({ onUploadSuccess }: FileUploadProps) {
     if (!file) return;
     setIsUploading(true);
 
-    const formData = new FormData();
-    formData.append("file", file);
+    try {
+      // 1. Manually construct the Edge Function URL
+      const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+      const functionUrl = `${supabaseUrl}/functions/v1/upload-pdf`;
 
-    // We need to get the user's auth token to call the edge function
-    const {
-      data: { session },
-    } = await supabase.auth.getSession();
+      const {
+        data: { session },
+      } = await supabase.auth.getSession();
+      if (!session) throw new Error("Not authenticated");
 
-    if (session) {
-      const { data, error } = await supabase.functions.invoke("upload-pdf", {
-        body: formData,
+      // 2. Use fetch with the correct URL and all required headers
+      const response = await fetch(functionUrl, {
+        method: "POST",
         headers: {
+          // Supabase requires both apikey and Authorization for function calls
+          apikey: process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
           Authorization: `Bearer ${session.access_token}`,
+          "Content-Type": file.type,
+          "X-File-Name": encodeURIComponent(file.name),
         },
+        body: file,
       });
 
-      if (error) {
-        console.error("Upload error:", error);
-      } else {
-        onUploadSuccess();
-        setIsOpen(false);
+      if (!response.ok) {
+        const errorBody = await response.json();
+        throw new Error(
+          errorBody.error || `Upload failed with status: ${response.status}`
+        );
       }
+
+      onUploadSuccess();
+      setIsOpen(false);
+    } catch (error) {
+      console.error("Upload error:", error);
+    } finally {
+      setIsUploading(false);
+      setFile(null);
     }
-    setIsUploading(false);
-    setFile(null);
   };
 
   return (

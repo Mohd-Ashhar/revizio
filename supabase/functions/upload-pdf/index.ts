@@ -1,8 +1,8 @@
+
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
 import { corsHeaders } from '../_shared/cors.ts'
 
 Deno.serve(async (req) => {
-  // This is needed if you're planning to invoke your function from a browser.
   if (req.method === 'OPTIONS') {
     return new Response('ok', { headers: corsHeaders })
   }
@@ -14,22 +14,25 @@ Deno.serve(async (req) => {
       { global: { headers: { Authorization: req.headers.get('Authorization')! } } }
     )
 
-    // Parse the multipart form data from the request
-    const formData = await req.formData()
-    const file = formData.get('file') as File
-
+    const file = req.body
+    
+    // We need to get the file name from the request headers
+    const fileNameHeader = req.headers.get('X-File-Name') || 'untitled.pdf';
+    const uniqueFileName = `${Date.now()}-${decodeURIComponent(fileNameHeader)}`
+    const filePath = `public/${uniqueFileName}`
+    
     if (!file) {
-      throw new Error('No file provided')
+      throw new Error('No file provided in the request body')
     }
 
-    // Create a unique file name to avoid conflicts
-    const fileName = `${Date.now()}-${file.name}`
-    const filePath = `public/${fileName}`
-
-    // 1. Upload the file to Supabase Storage
+    // 1. Upload the file stream to Supabase Storage
     const { error: uploadError } = await supabaseClient.storage
-      .from('pdfs') // Make sure you have a 'pdfs' bucket in your Storage
-      .upload(filePath, file)
+      .from('pdfs')
+      .upload(filePath, file, {
+          // The new `upload` method for streams requires content-type
+          contentType: req.headers.get('Content-Type') || 'application/pdf',
+      })
+    // --- END OF FIX ---
 
     if (uploadError) {
       throw uploadError
@@ -39,7 +42,7 @@ Deno.serve(async (req) => {
     const { data, error: insertError } = await supabaseClient
       .from('pdfs')
       .insert({
-        file_name: file.name,
+        file_name: decodeURIComponent(fileNameHeader), // Use the decoded file name
         storage_path: filePath,
       })
       .select()
