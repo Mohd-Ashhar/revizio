@@ -1,36 +1,73 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Revizio: Your AI-Powered Study Companion
 
-## Getting Started
+Revizio is a web application designed to help students study more effectively from their PDF coursebooks by generating interactive quizzes and providing a conversational learning experience.
 
-First, run the development server:
+**Live URL:** [Insert Your Vercel URL Here]
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
-```
+## How It Was Built
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+This project was built using a modern, full-stack TypeScript architecture:
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+- **Frontend:** [Next.js](https://nextjs.org/) with React 19, styled using [Tailwind CSS](https://tailwindcss.com/) and [shadcn/ui](https://ui.shadcn.com/) components.
+- **Backend:** [Supabase](https://supabase.com/) was used as a comprehensive backend-as-a-service for:
+  - **Database:** PostgreSQL for storing user data, PDF metadata, and quiz results.
+  - **Storage:** For hosting and serving uploaded PDF files.
+  - **Edge Functions:** Serverless Deno functions for handling PDF processing and AI logic.
+- **AI & Embeddings:**
+  - **LangChain.js:** To orchestrate interactions with large language models.
+  - **OpenAI:** Used for both quiz generation (`gpt-3.5-turbo`) and creating text embeddings for RAG.
+  - **pg_vector:** PostgreSQL extension for efficient vector similarity search.
+- **Deployment:** The application is deployed on [Vercel](https://vercel.com).
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+## Features
 
-## Learn More
+### What's Done (Must-Have Features)
 
-To learn more about Next.js, take a look at the following resources:
+- [x] **PDF Management:** Users can upload their own PDF coursebooks and select from a list of previously uploaded documents.
+- [x] **PDF Viewer:** A split-screen UI to display the selected PDF alongside the interactive quiz/chat panel.
+- [x] **Quiz Generation:** Dynamically generates Multiple Choice (MCQ), Short Answer (SAQ), and Long Answer (LAQ) questions from the PDF content.
+- [x] **Interactive Quizzing:** Users can answer questions, submit their quiz, and receive an instant score for MCQs.
+- [x] **Results & Explanations:** After submission, the app displays the user's answers, the correct answers, and detailed explanations for each question.
+- [x] **Progress Tracking Dashboard:** A comprehensive dashboard that shows:
+  - Aggregate stats (total quizzes, average score).
+  - A chart visualizing score progress over time.
+  - A detailed history of all quiz attempts.
+  - Analysis of a user's strengths and weaknesses based on question topics.
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+### What's Missing (Trade-offs)
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+- The "Nice-to-Have" RAG-powered Chat UI was implemented on the backend but was not integrated into the frontend UI as a trade-off to ensure all "Must-Have" features were completed and polished before the deadline.
 
-## Deploy on Vercel
+## My Use of LLM Tools
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+I used an AI assistant (Google's Gemini) extensively throughout this project to accelerate development, per the assignment's recommendation. Key uses included:
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+1.  **Project Planning:** Generating the initial 3-day project plan and technology stack.
+2.  **Code Generation:** Creating boilerplate for React components, Supabase Edge Functions, and SQL schemas.
+3.  **Debugging:** Solving complex issues related to CORS, dependency conflicts (`react-pdf`), and server-side data fetching.
+4.  **Documentation:** Generating this README template.
+
+## How to Run Locally
+
+1.  **Clone the repository:**
+    ```bash
+    git clone [https://github.com/your-username/revizio.git](https://github.com/your-username/revizio.git)
+    cd revizio
+    ```
+2.  **Install dependencies:**
+    ```bash
+    npm install
+    ```
+3.  **Set up environment variables:**
+    - Create a file named `.env.local` in the root of the project.
+    - Add your Supabase and OpenAI keys:
+      ```env
+      NEXT_PUBLIC_SUPABASE_URL="YOUR_SUPABASE_PROJECT_URL"
+      NEXT_PUBLIC_SUPABASE_ANON_KEY="YOUR_SUPABASE_ANON_KEY"
+      OPENAI_API_KEY="YOUR_OPENAI_API_KEY"
+      ```
+4.  **Run the development server:**
+    `bash
+    npm run dev
+    `
+    Open [http://localhost:3000](http://localhost:3000) to view the app.

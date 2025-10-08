@@ -4,8 +4,7 @@ import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
 import { ChatOpenAI } from 'npm:@langchain/openai'
 import { PromptTemplate } from 'npm:@langchain/core/prompts'
 import { StringOutputParser } from 'npm:@langchain/core/output_parsers'
-// We will no longer use PDFLoader from Langchain
-// import { PDFLoader } from 'npm:@langchain/community/document_loaders/fs/pdf' 
+
 import pdf from 'npm:pdf-parse@1.1.1'
 import { corsHeaders } from '../_shared/cors.ts'
 

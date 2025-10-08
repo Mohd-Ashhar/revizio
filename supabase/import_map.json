@@ -4,6 +4,8 @@
     "npm:@langchain/openai": "npm:@langchain/openai@0.2.5",
     "npm:@langchain/core/prompts": "npm:@langchain/core@0.2.22/prompts",
     "npm:@langchain/core/output_parsers": "npm:@langchain/core@0.2.22/output_parsers",
-    "npm:@langchain/community/document_loaders/fs/pdf": "npm:@langchain/community@0.2.20/document_loaders/fs/pdf"
+    "npm:langchain/text_splitter": "npm:langchain@0.2.11/text_splitter",
+    "npm:@langchain/community/document_loaders/fs/pdf": "npm:@langchain/community@0.2.20/document_loaders/fs/pdf",
+    "npm:pdf-parse@1.1.1": "npm:pdf-parse@1.1.1"
   }
 }
