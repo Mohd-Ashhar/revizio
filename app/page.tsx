@@ -26,39 +26,59 @@ export default function Home() {
   const [isEmbedding, setIsEmbedding] = useState(false);
   const supabase = createClient();
 
+  // Ensure there is a session for RLS and Functions auth
   useEffect(() => {
-    const signIn = async () => {
+    const ensureSession = async () => {
       const {
         data: { user },
       } = await supabase.auth.getUser();
       if (!user) {
-        await supabase.auth.signInAnonymously();
+        const { error } = await supabase.auth.signInAnonymously();
+        if (error) {
+          toast.error("Auth error", {
+            description: error.message,
+          });
+        }
       }
     };
-    signIn();
-  }, [supabase]);
+    ensureSession();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const handleEmbed = async () => {
     if (!selectedPdf) return;
     setIsEmbedding(true);
+
     toast.info("Processing PDF...", {
       description: "This may take a moment. Please wait.",
     });
 
-    const { error } = await supabase.functions.invoke("generate-embeddings", {
-      body: JSON.stringify({ pdf_id: selectedPdf.id }),
-    });
+    try {
+      // IMPORTANT: pass a JSON object { pdfId } to match the Edge Function
+      const { data, error } = await supabase.functions.invoke(
+        "generate-embeddings",
+        {
+          // supabase-js v2 sets Content-Type: application/json for object bodies
+          body: { pdf_id: selectedPdf.id },
+        }
+      );
 
-    if (error) {
-      toast.error("Error", {
-        description: "Failed to process the PDF for chat.",
-      });
-    } else {
+      if (error) {
+        throw error;
+      }
+
       toast.success("Success!", {
-        description: `"${selectedPdf.file_name}" is now ready for chat.`,
+        description:
+          `"${selectedPdf.file_name}" is now ready for chat.` +
+          (data?.message ? ` ${data.message}` : ""),
       });
+    } catch (err: any) {
+      toast.error("Error", {
+        description: err?.message || "Failed to process the PDF for chat.",
+      });
+    } finally {
+      setIsEmbedding(false);
     }
-    setIsEmbedding(false);
   };
 
   return (
