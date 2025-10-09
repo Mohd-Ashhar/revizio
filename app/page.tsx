@@ -229,7 +229,7 @@ export default function Home() {
             <TabsTrigger value="chat">Chat with PDF</TabsTrigger>
             <TabsTrigger value="quiz">Generate Quiz</TabsTrigger>
           </TabsList>
-          <TabsContent value="chat" className="flex-grow mt-4 overflow-y-auto">
+          <TabsContent value="chat" className="flex-grow mt-4 flex flex-col">
             <ChatView
               key={activeConversationId || "new"}
               pdfId={selectedPdf?.id ?? null}

@@ -33,7 +33,6 @@ export default function ChatView({
   const [isLoading, setIsLoading] = useState(false);
   const scrollAreaRef = useRef<HTMLDivElement>(null);
 
-  // Effect to load messages when a conversation is selected
   useEffect(() => {
     const loadMessages = async () => {
       if (!conversationId) {
@@ -59,7 +58,6 @@ export default function ChatView({
   }, [conversationId, supabase]);
 
   useEffect(() => {
-    // Scroll to bottom when new messages are added
     const viewport = scrollAreaRef.current?.querySelector(
       "[data-radix-scroll-area-viewport]"
     );
@@ -86,7 +84,6 @@ export default function ChatView({
       } = await supabase.auth.getUser();
       if (!user) throw new Error("User not authenticated.");
 
-      // If it's a new chat, create a conversation first
       if (!currentConversationId) {
         const { data: newConvo, error: convoError } = await supabase
           .from("conversations")
@@ -99,13 +96,11 @@ export default function ChatView({
           })
           .select()
           .single();
-
         if (convoError) throw convoError;
         currentConversationId = newConvo.id;
         setConversationId(newConvo.id);
       }
 
-      // Save user message
       const { error: userMessageError } = await supabase
         .from("messages")
         .insert({
@@ -116,7 +111,6 @@ export default function ChatView({
         });
       if (userMessageError) throw userMessageError;
 
-      // Call the AI function
       const { data: functionData, error: functionError } =
         await supabase.functions.invoke("chat-with-pdf", {
           body: { query: currentInput, pdf_id: pdfId },
@@ -125,7 +119,6 @@ export default function ChatView({
 
       const botMessage: Message = { content: functionData.answer, role: "bot" };
 
-      // Save bot message
       const { error: botMessageError } = await supabase
         .from("messages")
         .insert({
@@ -153,10 +146,11 @@ export default function ChatView({
 
   return (
     <div className="flex flex-col h-full max-w-3xl mx-auto w-full">
-      <ScrollArea className="flex-grow" ref={scrollAreaRef}>
-        <div className="space-y-6 px-4">
+      {/* The ScrollArea now takes up the flexible space */}
+      <ScrollArea className="flex-1" ref={scrollAreaRef}>
+        <div className="space-y-6 px-4 py-6">
           {messages.length === 0 && !isLoading && (
-            <div className="flex flex-col items-center justify-center h-full text-center text-muted-foreground pt-16">
+            <div className="flex flex-col items-center justify-center text-center text-muted-foreground">
               <div className="p-3 mb-4 border-2 border-dashed rounded-full">
                 <BotMessageSquare className="size-8" />
               </div>
@@ -201,7 +195,8 @@ export default function ChatView({
           )}
         </div>
       </ScrollArea>
-      <div className="mt-4 shrink-0 px-4 pb-4">
+      {/* The form container no longer grows or shrinks */}
+      <div className="shrink-0 px-4 pb-4 pt-2">
         <form
           onSubmit={handleSendMessage}
           className="relative flex items-center"
