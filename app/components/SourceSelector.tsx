@@ -48,9 +48,9 @@ export default function SourceSelector({ onPdfSelect }: SourceSelectorProps) {
   };
 
   return (
-    <div className="flex items-center gap-4">
+    <div className="flex flex-col gap-2 w-full">
       <Select onValueChange={handleSelect}>
-        <SelectTrigger className="w-[280px]">
+        <SelectTrigger className="w-full">
           <SelectValue placeholder="Select a coursebook" />
         </SelectTrigger>
         <SelectContent>
@@ -61,7 +61,6 @@ export default function SourceSelector({ onPdfSelect }: SourceSelectorProps) {
           ))}
         </SelectContent>
       </Select>
-      {/* 5. Call fetchPdfs on successful upload to refresh the list */}
       <FileUpload onUploadSuccess={fetchPdfs} />
     </div>
   );
