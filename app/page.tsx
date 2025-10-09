@@ -35,6 +35,7 @@ const useIsDesktop = () => {
 export default function Home() {
   const [selectedPdf, setSelectedPdf] = useState<Pdf | null>(null);
   const [isEmbedding, setIsEmbedding] = useState(false);
+  const [embeddedPdfIds, setEmbeddedPdfIds] = useState<Set<string>>(new Set());
 
   const isDesktop = useIsDesktop();
   // Sidebars are open by default on desktop, closed on mobile
@@ -84,6 +85,7 @@ export default function Home() {
           `"${selectedPdf.file_name}" is now ready for chat.` +
           (data?.message ? ` ${data.message}` : ""),
       });
+      setEmbeddedPdfIds((prev) => new Set(prev).add(selectedPdf.id));
     } catch (err: unknown) {
       const error = err as Error;
       toast.error("Error", {
@@ -93,7 +95,9 @@ export default function Home() {
       setIsEmbedding(false);
     }
   };
-
+  const isPdfEmbedded = selectedPdf
+    ? embeddedPdfIds.has(selectedPdf.id)
+    : false;
   return (
     <div className="relative flex h-screen bg-background text-foreground overflow-hidden">
       {/* Overlay for mobile */}
@@ -173,11 +177,15 @@ export default function Home() {
             <SourceSelector onPdfSelect={setSelectedPdf} />
             <Button
               onClick={handleEmbed}
-              disabled={!selectedPdf || isEmbedding}
+              disabled={!selectedPdf || isEmbedding || isPdfEmbedded}
               variant="secondary"
               className="w-full mt-2"
             >
-              {isEmbedding ? "Processing..." : "Process for Chat"}
+              {isEmbedding
+                ? "Processing..."
+                : isPdfEmbedded
+                ? "Processed for Chat"
+                : "Process for Chat"}
             </Button>
           </div>
           <Separator />
@@ -236,6 +244,7 @@ export default function Home() {
               pdfId={selectedPdf?.id ?? null}
               conversationId={activeConversationId}
               setConversationId={setActiveConversationId}
+              isPdfEmbedded={isPdfEmbedded}
             />
           </TabsContent>
           <TabsContent

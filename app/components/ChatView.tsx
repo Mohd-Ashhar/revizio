@@ -14,6 +14,7 @@ interface ChatViewProps {
   pdfId: string | null;
   conversationId: string | null;
   setConversationId: (id: string) => void;
+  isPdfEmbedded: boolean;
 }
 
 interface Message {
@@ -26,6 +27,7 @@ export default function ChatView({
   pdfId,
   conversationId,
   setConversationId,
+  isPdfEmbedded,
 }: ChatViewProps) {
   const supabase = createClient();
   const [messages, setMessages] = useState<Message[]>([]);
@@ -143,7 +145,15 @@ export default function ChatView({
       setIsLoading(false);
     }
   };
-
+  const getPlaceholderText = () => {
+    if (!pdfId) {
+      return "Please select a PDF first";
+    }
+    if (!isPdfEmbedded) {
+      return "Please process the PDF for chat first";
+    }
+    return "Ask a question...";
+  };
   return (
     <div className="flex flex-col h-full max-w-3xl mx-auto w-full">
       {/* The ScrollArea now takes up the flexible space */}
@@ -204,12 +214,8 @@ export default function ChatView({
           <Textarea
             value={inputValue}
             onChange={(e) => setInputValue(e.target.value)}
-            placeholder={
-              pdfId
-                ? "Ask a question..."
-                : "Please select and process a PDF first"
-            }
-            disabled={!pdfId || isLoading}
+            placeholder={getPlaceholderText()}
+            disabled={!pdfId || isLoading || !isPdfEmbedded}
             rows={1}
             className="pr-12 resize-none"
             onKeyDown={(e) => {
@@ -223,7 +229,9 @@ export default function ChatView({
             type="submit"
             size="icon"
             className="absolute right-2 top-1/2 -translate-y-1/2"
-            disabled={!pdfId || isLoading || !inputValue.trim()}
+            disabled={
+              !pdfId || isLoading || !inputValue.trim() || !isPdfEmbedded
+            }
           >
             <Send className="h-4 w-4" />
           </Button>
