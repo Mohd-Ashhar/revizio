@@ -226,7 +226,7 @@ export default function Home() {
           className="flex-grow flex flex-col overflow-hidden"
         >
           <TabsList className="grid w-full grid-cols-2 max-w-sm mx-auto shrink-0">
-            <TabsTrigger value="chat">Chat with PDF</TabsTrigger>
+            <TabsTrigger value="chat">Virtual Teacher</TabsTrigger>
             <TabsTrigger value="quiz">Generate Quiz</TabsTrigger>
           </TabsList>
           <TabsContent value="chat" className="flex-grow mt-4 flex flex-col">

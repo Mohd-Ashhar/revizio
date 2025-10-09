@@ -15,7 +15,7 @@ const geistMono = Geist_Mono({
 
 export const metadata: Metadata = {
   title: "Revizio",
-  description: "AI-Powered Text Book Revision",
+  description: "Your AI-Powered Study Companion",
 };
 
 export default function RootLayout({
