@@ -13,26 +13,18 @@ import {
 } from "recharts";
 
 interface ChartProps {
-  // We revert this prop for simplicity, as the stringify method didn't help.
-  // The underlying issue is not with the prop type itself.
   data: {
     date: string;
-    score: number;
+    Score: number; // Changed from 'score' to 'Score' to match data
   }[];
 }
 
-interface CustomTooltipProps {
-  active?: boolean;
-  payload?: any[];
-  label?: string;
-}
-
-// 1. Tooltip is modified to only show the date (label)
 const CustomTooltip = ({ active, payload, label }: any) => {
   if (active && payload && payload.length) {
     return (
       <div className="p-2 border bg-background rounded-md shadow-sm">
-        <p className="label font-semibold">{`${label}`}</p>
+        <p className="label font-semibold">{`Date: ${label}`}</p>
+        <p className="intro text-primary">{`Score: ${payload[0].value}%`}</p>
       </div>
     );
   }
@@ -46,24 +38,35 @@ export default function ProgressChart({ data }: ChartProps) {
         data={data}
         margin={{
           top: 5,
-          right: 30,
-          left: 20,
+          right: 20,
+          left: -10,
           bottom: 5,
         }}
       >
-        <CartesianGrid strokeDasharray="3 3" />
-        <XAxis dataKey="date" />
-
-        {/* 2. Y-axis is configured to show a fixed domain and ticks */}
-        <YAxis domain={[0, 4]} ticks={[1, 2, 3]} allowDecimals={false} />
-
+        <CartesianGrid strokeDasharray="3 3" strokeOpacity={0.5} />
+        <XAxis
+          dataKey="date"
+          stroke="hsl(var(--muted-foreground))"
+          fontSize={12}
+          tickLine={false}
+          axisLine={false}
+        />
+        <YAxis
+          stroke="hsl(var(--muted-foreground))"
+          fontSize={12}
+          tickLine={false}
+          axisLine={false}
+          domain={[0, 100]}
+          tickFormatter={(value) => `${value}%`}
+        />
         <Tooltip content={<CustomTooltip />} />
-        <Legend />
         <Line
           type="monotone"
-          dataKey="score"
-          stroke="#8884d8"
+          dataKey="Score"
+          stroke="hsl(var(--primary))"
+          strokeWidth={2}
           activeDot={{ r: 8 }}
+          dot={{ r: 4 }}
         />
       </LineChart>
     </ResponsiveContainer>
