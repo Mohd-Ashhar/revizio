@@ -7,7 +7,7 @@ import Link from "next/link";
 import { createClient } from "@/lib/supabase/client";
 import { toast } from "sonner";
 import { PanelLeftClose, PanelRight, Menu, X } from "lucide-react";
-import { useMediaQuery } from "./hooks/use-media-query"; // We will create this custom hook
+import { useMediaQuery } from "./hooks/use-media-query";
 
 import SourceSelector, { Pdf } from "./components/SourceSelector";
 import QuizView from "./components/QuizView";
@@ -37,9 +37,9 @@ export default function Home() {
   const [isEmbedding, setIsEmbedding] = useState(false);
 
   const isDesktop = useIsDesktop();
-  // Sidebar is open by default on desktop, closed on mobile
+  // Sidebars are open by default on desktop, closed on mobile
   const [isSourceSidebarOpen, setIsSourceSidebarOpen] = useState(isDesktop);
-  const [isPdfSidebarOpen, setIsPdfSidebarOpen] = useState(false);
+  const [isPdfSidebarOpen, setIsPdfSidebarOpen] = useState(isDesktop);
 
   const [activeConversationId, setActiveConversationId] = useState<
     string | null
@@ -49,7 +49,7 @@ export default function Home() {
   // Adjust sidebar state when viewport size changes
   useEffect(() => {
     setIsSourceSidebarOpen(isDesktop);
-    setIsPdfSidebarOpen(false); // Keep PDF view closed by default on resize
+    setIsPdfSidebarOpen(isDesktop); // Open PDF view by default on desktop
   }, [isDesktop]);
 
   useEffect(() => {
@@ -111,7 +111,7 @@ export default function Home() {
       <div
         className={cn(
           "flex flex-col border-r transition-all duration-300 ease-in-out z-40 h-full",
-          "bg-background md:bg-muted/20", // Solid background on mobile
+          "bg-background md:bg-muted/20",
           "fixed md:relative md:translate-x-0",
           isSourceSidebarOpen
             ? "translate-x-0 w-4/5 md:w-[300px]"
@@ -120,37 +120,8 @@ export default function Home() {
       >
         {/* Sidebar Header */}
         <div className="flex h-16 items-center border-b px-4 shrink-0">
-          <h1
-            className={cn(
-              "text-xl font-bold",
-              !isSourceSidebarOpen && "hidden"
-            )}
-          >
-            Revizio
-          </h1>
-          {/* Desktop Close Button */}
-          <Button
-            variant="ghost"
-            size="icon"
-            className="ml-auto hidden md:flex"
-            onClick={() => setIsSourceSidebarOpen(!isSourceSidebarOpen)}
-          >
-            <PanelLeftClose className="size-5" />
-          </Button>
-          {/* Mobile Close Button */}
-          <Button
-            variant="ghost"
-            size="icon"
-            className="ml-auto md:hidden"
-            onClick={() => setIsSourceSidebarOpen(false)}
-          >
-            <X className="size-5" />
-          </Button>
-        </div>
-
-        {/* Collapsed Desktop Sidebar Content */}
-        {!isSourceSidebarOpen && isDesktop && (
-          <div className="flex flex-col items-center gap-4 py-4">
+          {/* Desktop: Open Icon (when collapsed) */}
+          {!isSourceSidebarOpen && isDesktop && (
             <Button
               variant="ghost"
               size="icon"
@@ -158,8 +129,38 @@ export default function Home() {
             >
               <Menu className="size-5" />
             </Button>
-          </div>
-        )}
+          )}
+
+          {/* Desktop: Title & Close Icon (when expanded) */}
+          {isSourceSidebarOpen && isDesktop && (
+            <>
+              <h1 className="text-xl font-bold">Revizio</h1>
+              <Button
+                variant="ghost"
+                size="icon"
+                className="ml-auto"
+                onClick={() => setIsSourceSidebarOpen(false)}
+              >
+                <PanelLeftClose className="size-5" />
+              </Button>
+            </>
+          )}
+
+          {/* Mobile: Title & Close Icon */}
+          {!isDesktop && (
+            <>
+              <h1 className="text-xl font-bold">Revizio</h1>
+              <Button
+                variant="ghost"
+                size="icon"
+                className="ml-auto"
+                onClick={() => setIsSourceSidebarOpen(false)}
+              >
+                <X className="size-5" />
+              </Button>
+            </>
+          )}
+        </div>
 
         {/* Expanded Sidebar Content */}
         <div
@@ -249,24 +250,26 @@ export default function Home() {
       {/* Right Sidebar (PDF Viewer) */}
       <div
         className={cn(
-          "border-l overflow-y-auto transition-transform duration-300 ease-in-out z-40 h-full",
-          "bg-background", // Always solid background
-          "fixed right-0 md:relative md:translate-x-0",
-          isPdfSidebarOpen ? "translate-x-0" : "translate-x-full",
-          "w-4/5 md:w-1/2"
+          "overflow-y-auto transition-all duration-300 ease-in-out z-40 h-full bg-background",
+          "fixed right-0 md:relative",
+          isPdfSidebarOpen
+            ? "translate-x-0 w-4/5 md:w-1/2 border-l"
+            : "translate-x-full w-4/5 md:translate-x-0 md:w-0 md:border-l-0"
         )}
       >
-        <div className="h-16 border-b flex items-center px-4 md:hidden">
-          <Button
-            variant="ghost"
-            size="icon"
-            className="ml-auto"
-            onClick={() => setIsPdfSidebarOpen(false)}
-          >
-            <X className="size-5" />
-          </Button>
+        <div className={cn("h-full", !isPdfSidebarOpen && "md:hidden")}>
+          <div className="h-16 border-b flex items-center px-4 md:hidden">
+            <Button
+              variant="ghost"
+              size="icon"
+              className="ml-auto"
+              onClick={() => setIsPdfSidebarOpen(false)}
+            >
+              <X className="size-5" />
+            </Button>
+          </div>
+          <PdfViewer file={selectedPdf?.storage_path ?? null} />
         </div>
-        <PdfViewer file={selectedPdf?.storage_path ?? null} />
       </div>
     </div>
   );
