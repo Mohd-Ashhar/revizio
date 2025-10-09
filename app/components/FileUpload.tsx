@@ -93,7 +93,7 @@ export default function FileUpload({ onUploadSuccess }: FileUploadProps) {
           {isDragActive ? (
             <p>Drop the file here ...</p>
           ) : (
-            <p>Drag 'n' drop a PDF here, or click to select a file</p>
+            <p>Drag &apos;n&apos; drop a PDF here, or click to select a file</p>
           )}
         </div>
         {file && <p className="mt-2 text-sm">Selected: {file.name}</p>}

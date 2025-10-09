@@ -195,9 +195,7 @@ export default async function DashboardPage() {
                   ))
                 ) : (
                   <TableRow>
-                    <TableCell colSpan={3} className="text-center">
-                      You haven't taken any quizzes yet.
-                    </TableCell>
+                    <TableCell colSpan={3} className="text-center">You haven&apos;t taken any quizzes yet.</TableCell>
                   </TableRow>
                 )}
               </TableBody>

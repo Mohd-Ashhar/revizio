@@ -4,75 +4,146 @@
 import { useState, useRef, useEffect } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
-import { Send } from "lucide-react";
+import { Send, BotMessageSquare } from "lucide-react";
+import { cn } from "@/lib/utils";
 
 interface ChatViewProps {
   pdfId: string | null;
+  conversationId: string | null;
+  setConversationId: (id: string) => void;
 }
 
 interface Message {
-  text: string;
-  sender: "user" | "bot";
+  id?: string;
+  content: string;
+  role: "user" | "bot";
 }
 
-export default function ChatView({ pdfId }: ChatViewProps) {
+export default function ChatView({
+  pdfId,
+  conversationId,
+  setConversationId,
+}: ChatViewProps) {
   const supabase = createClient();
   const [messages, setMessages] = useState<Message[]>([]);
   const [inputValue, setInputValue] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const scrollAreaRef = useRef<HTMLDivElement>(null);
 
+  // Effect to load messages when a conversation is selected
   useEffect(() => {
-    // Automatically scroll to the bottom when new messages are added
-    if (scrollAreaRef.current) {
-      const viewport = scrollAreaRef.current.querySelector(
-        "[data-radix-scroll-area-viewport]"
-      );
-      if (viewport) {
-        viewport.scrollTo({ top: viewport.scrollHeight, behavior: "smooth" });
+    const loadMessages = async () => {
+      if (!conversationId) {
+        setMessages([]);
+        return;
       }
+      setIsLoading(true);
+      const { data, error } = await supabase
+        .from("messages")
+        .select("id, content, role")
+        .eq("conversation_id", conversationId)
+        .order("created_at", { ascending: true });
+
+      if (error) {
+        console.error("Error loading messages:", error);
+        setMessages([]);
+      } else {
+        setMessages(data as Message[]);
+      }
+      setIsLoading(false);
+    };
+    loadMessages();
+  }, [conversationId, supabase]);
+
+  useEffect(() => {
+    // Scroll to bottom when new messages are added
+    const viewport = scrollAreaRef.current?.querySelector(
+      "[data-radix-scroll-area-viewport]"
+    );
+    if (viewport) {
+      viewport.scrollTo({ top: viewport.scrollHeight, behavior: "smooth" });
     }
   }, [messages]);
-
-  // Clear chat when a new PDF is selected
-  useEffect(() => {
-    setMessages([]);
-  }, [pdfId]);
 
   const handleSendMessage = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!inputValue.trim() || !pdfId) return;
 
-    const userMessage: Message = { text: inputValue, sender: "user" };
+    const userMessage: Message = { content: inputValue, role: "user" };
     setMessages((prev) => [...prev, userMessage]);
     const currentInput = inputValue;
     setInputValue("");
     setIsLoading(true);
 
+    let currentConversationId = conversationId;
+
     try {
       const {
-        data: { session },
-      } = await supabase.auth.getSession();
-      if (!session) throw new Error("Not authenticated");
+        data: { user },
+      } = await supabase.auth.getUser();
+      if (!user) throw new Error("User not authenticated.");
 
-      const { data, error } = await supabase.functions.invoke("chat-with-pdf", {
-        body: JSON.stringify({ query: currentInput, pdf_id: pdfId }),
-      });
+      // If it's a new chat, create a conversation first
+      if (!currentConversationId) {
+        const { data: newConvo, error: convoError } = await supabase
+          .from("conversations")
+          .insert({
+            user_id: user.id,
+            pdf_id: pdfId,
+            title:
+              currentInput.substring(0, 50) +
+              (currentInput.length > 50 ? "..." : ""),
+          })
+          .select()
+          .single();
 
-      if (error) throw error;
+        if (convoError) throw convoError;
+        currentConversationId = newConvo.id;
+        setConversationId(newConvo.id);
+      }
 
-      const botMessage: Message = { text: data.answer, sender: "bot" };
+      // Save user message
+      const { error: userMessageError } = await supabase
+        .from("messages")
+        .insert({
+          conversation_id: currentConversationId,
+          user_id: user.id,
+          content: currentInput,
+          role: "user",
+        });
+      if (userMessageError) throw userMessageError;
+
+      // Call the AI function
+      const { data: functionData, error: functionError } =
+        await supabase.functions.invoke("chat-with-pdf", {
+          body: { query: currentInput, pdf_id: pdfId },
+        });
+      if (functionError) throw functionError;
+
+      const botMessage: Message = { content: functionData.answer, role: "bot" };
+
+      // Save bot message
+      const { error: botMessageError } = await supabase
+        .from("messages")
+        .insert({
+          conversation_id: currentConversationId,
+          user_id: user.id,
+          content: botMessage.content,
+          role: "bot",
+        });
+      if (botMessageError) throw botMessageError;
+
       setMessages((prev) => [...prev, botMessage]);
     } catch (error) {
       console.error("Chat error:", error);
       setMessages((prev) => [
         ...prev,
         {
-          text: "Sorry, I encountered an error. Please try again.",
-          sender: "bot",
+          content: "Sorry, I encountered an error. Please try again.",
+          role: "bot",
         },
       ]);
     } finally {
@@ -81,45 +152,46 @@ export default function ChatView({ pdfId }: ChatViewProps) {
   };
 
   return (
-    <div className="flex flex-col h-full">
-      <ScrollArea
-        className="flex-grow p-4 border rounded-md"
-        ref={scrollAreaRef}
-      >
-        <div className="space-y-4">
-          {messages.length === 0 && (
-            <div className="text-center text-muted-foreground">
-              <p>
-                First, process the PDF, then ask anything about the document!
-              </p>
+    <div className="flex flex-col h-full max-w-3xl mx-auto w-full">
+      <ScrollArea className="flex-grow" ref={scrollAreaRef}>
+        <div className="space-y-6 px-4">
+          {messages.length === 0 && !isLoading && (
+            <div className="flex flex-col items-center justify-center h-full text-center text-muted-foreground pt-16">
+              <div className="p-3 mb-4 border-2 border-dashed rounded-full">
+                <BotMessageSquare className="size-8" />
+              </div>
+              <h2 className="text-xl font-semibold">Welcome to Revizio</h2>
+              <p>Select a document, process it, and start asking questions.</p>
             </div>
           )}
           {messages.map((message, index) => (
             <div
-              key={index}
-              className={`flex items-start gap-3 ${
-                message.sender === "user" ? "justify-end" : ""
-              }`}
+              key={message.id || `local-${index}`}
+              className={cn(
+                "flex items-start gap-3 text-sm",
+                message.role === "user" ? "justify-end" : "justify-start"
+              )}
             >
-              {message.sender === "bot" && (
-                <Avatar className="h-8 w-8 bg-primary text-primary-foreground">
+              {message.role === "bot" && (
+                <Avatar className="h-8 w-8 border">
                   <AvatarFallback>AI</AvatarFallback>
                 </Avatar>
               )}
               <div
-                className={`rounded-lg p-3 max-w-[80%] whitespace-pre-wrap ${
-                  message.sender === "user"
+                className={cn(
+                  "rounded-lg p-3 max-w-[85%] whitespace-pre-wrap",
+                  message.role === "user"
                     ? "bg-primary text-primary-foreground"
                     : "bg-muted"
-                }`}
+                )}
               >
-                <p className="text-sm">{message.text}</p>
+                <p>{message.content}</p>
               </div>
             </div>
           ))}
           {isLoading && (
             <div className="flex items-start gap-3">
-              <Avatar className="h-8 w-8 bg-primary text-primary-foreground">
+              <Avatar className="h-8 w-8 border">
                 <AvatarFallback>AI</AvatarFallback>
               </Avatar>
               <div className="rounded-lg p-3 bg-muted">
@@ -129,26 +201,39 @@ export default function ChatView({ pdfId }: ChatViewProps) {
           )}
         </div>
       </ScrollArea>
-      <form
-        onSubmit={handleSendMessage}
-        className="flex items-center gap-2 mt-4"
-      >
-        <Input
-          value={inputValue}
-          onChange={(e) => setInputValue(e.target.value)}
-          placeholder={
-            pdfId ? "Ask a question..." : "Please select a PDF first"
-          }
-          disabled={!pdfId || isLoading}
-        />
-        <Button
-          type="submit"
-          size="icon"
-          disabled={!pdfId || isLoading || !inputValue.trim()}
+      <div className="mt-4 shrink-0 px-4 pb-4">
+        <form
+          onSubmit={handleSendMessage}
+          className="relative flex items-center"
         >
-          <Send className="h-4 w-4" />
-        </Button>
-      </form>
+          <Textarea
+            value={inputValue}
+            onChange={(e) => setInputValue(e.target.value)}
+            placeholder={
+              pdfId
+                ? "Ask a question..."
+                : "Please select and process a PDF first"
+            }
+            disabled={!pdfId || isLoading}
+            rows={1}
+            className="pr-12 resize-none"
+            onKeyDown={(e) => {
+              if (e.key === "Enter" && !e.shiftKey) {
+                e.preventDefault();
+                handleSendMessage(e);
+              }
+            }}
+          />
+          <Button
+            type="submit"
+            size="icon"
+            className="absolute right-2 top-1/2 -translate-y-1/2"
+            disabled={!pdfId || isLoading || !inputValue.trim()}
+          >
+            <Send className="h-4 w-4" />
+          </Button>
+        </form>
+      </div>
     </div>
   );
 }

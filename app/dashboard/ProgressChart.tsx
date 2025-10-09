@@ -21,6 +21,12 @@ interface ChartProps {
   }[];
 }
 
+interface CustomTooltipProps {
+  active?: boolean;
+  payload?: any[];
+  label?: string;
+}
+
 // 1. Tooltip is modified to only show the date (label)
 const CustomTooltip = ({ active, payload, label }: any) => {
   if (active && payload && payload.length) {
