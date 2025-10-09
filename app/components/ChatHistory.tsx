@@ -5,7 +5,6 @@ import { useEffect, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { Button } from "@/components/ui/button";
 import { PlusCircle, MessageSquare } from "lucide-react";
-import { cn } from "@/lib/utils";
 
 interface Conversation {
   id: string;

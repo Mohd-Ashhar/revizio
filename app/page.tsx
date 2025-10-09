@@ -84,9 +84,10 @@ export default function Home() {
           `"${selectedPdf.file_name}" is now ready for chat.` +
           (data?.message ? ` ${data.message}` : ""),
       });
-    } catch (err: any) {
+    } catch (err: unknown) {
+      const error = err as Error;
       toast.error("Error", {
-        description: err?.message || "Failed to process the PDF for chat.",
+        description: error?.message || "Failed to process the PDF for chat.",
       });
     } finally {
       setIsEmbedding(false);

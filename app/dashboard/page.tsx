@@ -16,14 +16,30 @@ import { Progress } from "@/components/ui/progress";
 import { CheckCircle2, ListChecks, Target, ArrowLeft } from "lucide-react";
 import ProgressChart from "./ProgressChart";
 
+// Define a more specific type for the data we expect from Supabase
+interface Attempt {
+  id: string;
+  score: number;
+  created_at: string;
+  results: { topic: string; isCorrect: boolean }[];
+  quizzes: {
+    quiz_content: {
+      mcqs: unknown[];
+    };
+    pdfs: {
+      file_name: string;
+    };
+  } | null;
+}
+
 export default async function DashboardPage() {
   const supabase = createClient();
 
-  const { data: attempts, error }: { data: any[] | null; error: any } =
-    await supabase
-      .from("quiz_attempts")
-      .select(
-        `
+  // Fetch the data
+  const { data: attempts, error } = await supabase
+    .from("quiz_attempts")
+    .select(
+      `
       id,
       score,
       created_at,
@@ -35,79 +51,63 @@ export default async function DashboardPage() {
         )
       )
     `
-      )
-      .order("created_at", { ascending: false });
+    )
+    .order("created_at", { ascending: false });
 
   if (error) {
     console.error("Error fetching attempts:", error);
   }
 
+  // Use a double assertion to safely cast the data
+  const typedAttempts: Attempt[] = (attempts as unknown as Attempt[]) || [];
+
   // --- CALCULATE STATS ---
-  const totalQuizzes = attempts?.length || 0;
+  const totalQuizzes = typedAttempts.length;
   let totalCorrect = 0;
   let totalMcqs = 0;
 
-  attempts?.forEach(
-    (attempt: {
-      score: number;
-      quizzes: { quiz_content: { mcqs: string | any[] } };
-    }) => {
-      totalCorrect += attempt.score || 0;
-      totalMcqs += attempt.quizzes?.quiz_content?.mcqs?.length || 0;
-    }
-  );
+  typedAttempts.forEach((attempt) => {
+    totalCorrect += attempt.score || 0;
+    totalMcqs += attempt.quizzes?.quiz_content?.mcqs?.length || 0;
+  });
 
   const averageScore =
-    totalMcqs > 0 ? ((totalCorrect / totalMcqs) * 100).toFixed(2) : 0;
+    totalMcqs > 0 ? ((totalCorrect / totalMcqs) * 100).toFixed(2) : "0";
 
   // --- PREPARE DATA FOR THE CHART ---
-  const chartData =
-    attempts
-      ?.map(
-        (attempt: {
-          quizzes: { quiz_content: { mcqs: string | any[] } };
-          score: number;
-          created_at: string | number | Date;
-        }) => {
-          const total = attempt.quizzes?.quiz_content?.mcqs?.length || 0;
-          const percentage = total > 0 ? (attempt.score / total) * 100 : 0;
-          return {
-            date: new Date(attempt.created_at).toLocaleDateString("en-US", {
-              month: "short",
-              day: "numeric",
-            }),
-            Score: parseFloat(percentage.toFixed(2)),
-          };
-        }
-      )
-      .reverse() || [];
+  const chartData = typedAttempts
+    .map((attempt) => {
+      const total = attempt.quizzes?.quiz_content?.mcqs?.length || 0;
+      const percentage = total > 0 ? (attempt.score / total) * 100 : 0;
+      return {
+        date: new Date(attempt.created_at).toLocaleDateString("en-US", {
+          month: "short",
+          day: "numeric",
+        }),
+        Score: parseFloat(percentage.toFixed(2)),
+      };
+    })
+    .reverse();
 
   // --- ANALYZE STRENGTHS AND WEAKNESSES ---
   const topicStats: { [key: string]: { correct: number; total: number } } = {};
-  attempts?.forEach((attempt: { results: any[] }) => {
-    attempt.results?.forEach(
-      (result: { topic: string | number; isCorrect: any }) => {
-        if (result.topic) {
-          if (!topicStats[result.topic]) {
-            topicStats[result.topic] = { correct: 0, total: 0 };
-          }
-          topicStats[result.topic].total++;
-          if (result.isCorrect) {
-            topicStats[result.topic].correct++;
-          }
+  typedAttempts.forEach((attempt) => {
+    attempt.results?.forEach((result) => {
+      if (result.topic) {
+        if (!topicStats[result.topic]) {
+          topicStats[result.topic] = { correct: 0, total: 0 };
+        }
+        topicStats[result.topic].total++;
+        if (result.isCorrect) {
+          topicStats[result.topic].correct++;
         }
       }
-    );
+    });
   });
 
   const sortedTopics = Object.entries(topicStats)
-    .filter(([, stats]: [string, { total: number }]) => stats.total > 0) // Ensure we don't divide by zero
-    .sort(
-      (
-        [, a]: [string, { correct: number; total: number }],
-        [, b]: [string, { correct: number; total: number }]
-      ) => a.correct / a.total - b.correct / b.total
-    );
+    .filter(([, stats]) => stats.total > 0)
+    .sort(([, a], [, b]) => a.correct / a.total - b.correct / b.total);
 
   const weaknesses = sortedTopics.slice(0, 3);
   const strengths = sortedTopics.slice(-3).reverse();
@@ -237,8 +237,8 @@ export default async function DashboardPage() {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {attempts && attempts.length > 0 ? (
-                    attempts.slice(0, 10).map((attempt: any) => (
+                  {typedAttempts.length > 0 ? (
+                    typedAttempts.slice(0, 10).map((attempt) => (
                       <TableRow key={attempt.id}>
                         <TableCell className="font-medium truncate max-w-[150px]">
                           {attempt.quizzes?.pdfs?.file_name || "N/A"}
