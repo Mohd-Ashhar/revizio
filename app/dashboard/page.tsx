@@ -1,15 +1,9 @@
 // app/dashboard/page.tsx
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
-import { cn } from "@/lib/utils"; // <-- This is the missing import
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
+import { cn } from "@/lib/utils";
+import VideoRecommendations from "./VideoRecommendations";
+
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -125,6 +119,8 @@ export default async function DashboardPage() {
   const weaknesses = sortedTopics.slice(0, 3);
   const strengths = sortedTopics.slice(-3).reverse();
 
+  const weaknessTopics = weaknesses.map(([topic]) => topic);
+
   return (
     <div className="bg-muted/30 min-h-screen">
       <div className="container mx-auto p-4 md:p-8">
@@ -224,6 +220,18 @@ export default async function DashboardPage() {
                 })}
               </div>
             </div>
+          </CardContent>
+        </Card>
+        {/* --- ADD VIDEO RECOMMENDATIONS CARD --- */}
+        <Card className="mb-6">
+          <CardHeader>
+            <CardTitle>Recommended Videos For You</CardTitle>
+            <p className="text-sm text-muted-foreground">
+              Based on your areas for improvement
+            </p>
+          </CardHeader>
+          <CardContent>
+            <VideoRecommendations topics={weaknessTopics} />
           </CardContent>
         </Card>
 
