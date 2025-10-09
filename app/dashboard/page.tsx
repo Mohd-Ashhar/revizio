@@ -19,10 +19,11 @@ import ProgressChart from "./ProgressChart";
 export default async function DashboardPage() {
   const supabase = createClient();
 
-  const { data: attempts, error }: any = await supabase
-    .from("quiz_attempts")
-    .select(
-      `
+  const { data: attempts, error }: { data: any[] | null; error: any } =
+    await supabase
+      .from("quiz_attempts")
+      .select(
+        `
       id,
       score,
       created_at,
@@ -34,8 +35,8 @@ export default async function DashboardPage() {
         )
       )
     `
-    )
-    .order("created_at", { ascending: false });
+      )
+      .order("created_at", { ascending: false });
 
   if (error) {
     console.error("Error fetching attempts:", error);
@@ -46,10 +47,15 @@ export default async function DashboardPage() {
   let totalCorrect = 0;
   let totalMcqs = 0;
 
-  attempts?.forEach((attempt: any) => {
-    totalCorrect += attempt.score || 0;
-    totalMcqs += attempt.quizzes?.quiz_content?.mcqs?.length || 0;
-  });
+  attempts?.forEach(
+    (attempt: {
+      score: number;
+      quizzes: { quiz_content: { mcqs: string | any[] } };
+    }) => {
+      totalCorrect += attempt.score || 0;
+      totalMcqs += attempt.quizzes?.quiz_content?.mcqs?.length || 0;
+    }
+  );
 
   const averageScore =
     totalMcqs > 0 ? ((totalCorrect / totalMcqs) * 100).toFixed(2) : 0;
@@ -57,38 +63,51 @@ export default async function DashboardPage() {
   // --- PREPARE DATA FOR THE CHART ---
   const chartData =
     attempts
-      ?.map((attempt: any) => {
-        const total = attempt.quizzes?.quiz_content?.mcqs?.length || 0;
-        const percentage = total > 0 ? (attempt.score / total) * 100 : 0;
-        return {
-          date: new Date(attempt.created_at).toLocaleDateString("en-US", {
-            month: "short",
-            day: "numeric",
-          }),
-          Score: parseFloat(percentage.toFixed(2)),
-        };
-      })
+      ?.map(
+        (attempt: {
+          quizzes: { quiz_content: { mcqs: string | any[] } };
+          score: number;
+          created_at: string | number | Date;
+        }) => {
+          const total = attempt.quizzes?.quiz_content?.mcqs?.length || 0;
+          const percentage = total > 0 ? (attempt.score / total) * 100 : 0;
+          return {
+            date: new Date(attempt.created_at).toLocaleDateString("en-US", {
+              month: "short",
+              day: "numeric",
+            }),
+            Score: parseFloat(percentage.toFixed(2)),
+          };
+        }
+      )
       .reverse() || [];
 
   // --- ANALYZE STRENGTHS AND WEAKNESSES ---
   const topicStats: { [key: string]: { correct: number; total: number } } = {};
-  attempts?.forEach((attempt: any) => {
-    attempt.results?.forEach((result: any) => {
-      if (result.topic) {
-        if (!topicStats[result.topic]) {
-          topicStats[result.topic] = { correct: 0, total: 0 };
-        }
-        topicStats[result.topic].total++;
-        if (result.isCorrect) {
-          topicStats[result.topic].correct++;
+  attempts?.forEach((attempt: { results: any[] }) => {
+    attempt.results?.forEach(
+      (result: { topic: string | number; isCorrect: any }) => {
+        if (result.topic) {
+          if (!topicStats[result.topic]) {
+            topicStats[result.topic] = { correct: 0, total: 0 };
+          }
+          topicStats[result.topic].total++;
+          if (result.isCorrect) {
+            topicStats[result.topic].correct++;
+          }
         }
       }
-    });
+    );
   });
 
   const sortedTopics = Object.entries(topicStats)
-    .filter(([, stats]) => stats.total > 0) // Ensure we don't divide by zero
-    .sort(([, a], [, b]) => a.correct / a.total - b.correct / b.total);
+    .filter(([, stats]: [string, { total: number }]) => stats.total > 0) // Ensure we don't divide by zero
+    .sort(
+      (
+        [, a]: [string, { correct: number; total: number }],
+        [, b]: [string, { correct: number; total: number }]
+      ) => a.correct / a.total - b.correct / b.total
+    );
 
   const weaknesses = sortedTopics.slice(0, 3);
   const strengths = sortedTopics.slice(-3).reverse();
@@ -219,24 +238,20 @@ export default async function DashboardPage() {
                 </TableHeader>
                 <TableBody>
                   {attempts && attempts.length > 0 ? (
-                    attempts.slice(0, 10).map(
-                      (
-                        attempt: any // Show latest 10
-                      ) => (
-                        <TableRow key={attempt.id}>
-                          <TableCell className="font-medium truncate max-w-[150px]">
-                            {attempt.quizzes?.pdfs?.file_name || "N/A"}
-                          </TableCell>
-                          <TableCell className="text-right text-muted-foreground">
-                            {new Date(attempt.created_at).toLocaleDateString()}
-                          </TableCell>
-                        </TableRow>
-                      )
-                    )
+                    attempts.slice(0, 10).map((attempt: any) => (
+                      <TableRow key={attempt.id}>
+                        <TableCell className="font-medium truncate max-w-[150px]">
+                          {attempt.quizzes?.pdfs?.file_name || "N/A"}
+                        </TableCell>
+                        <TableCell className="text-right text-muted-foreground">
+                          {new Date(attempt.created_at).toLocaleDateString()}
+                        </TableCell>
+                      </TableRow>
+                    ))
                   ) : (
                     <TableRow>
                       <TableCell colSpan={3} className="text-center h-24">
-                        You haven't taken any quizzes yet.
+                        You haven&apos;t taken any quizzes yet.
                       </TableCell>
                     </TableRow>
                   )}

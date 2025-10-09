@@ -271,7 +271,10 @@ export default function QuizView({ pdfId }: QuizViewProps) {
             )}
           </div>
         ) : (
-          <p>Select a coursebook and click "Generate Quiz" to get started.</p>
+          <p>
+            Select a coursebook and click &quot;Generate Quiz&quot; to get
+            started.
+          </p>
         )}
       </CardContent>
     </Card>

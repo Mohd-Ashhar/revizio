@@ -8,18 +8,25 @@ import {
   YAxis,
   CartesianGrid,
   Tooltip,
-  Legend,
   ResponsiveContainer,
 } from "recharts";
 
 interface ChartProps {
   data: {
     date: string;
-    Score: number; // Changed from 'score' to 'Score' to match data
+    Score: number;
   }[];
 }
 
-const CustomTooltip = ({ active, payload, label }: any) => {
+const CustomTooltip = ({
+  active,
+  payload,
+  label,
+}: {
+  active?: boolean;
+  payload?: any[];
+  label?: string;
+}) => {
   if (active && payload && payload.length) {
     return (
       <div className="p-2 border bg-background rounded-md shadow-sm">
