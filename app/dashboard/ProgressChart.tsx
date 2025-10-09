@@ -2,11 +2,10 @@
 "use client";
 
 import {
-  LineChart,
-  Line,
+  AreaChart,
+  Area,
   XAxis,
   YAxis,
-  CartesianGrid,
   Tooltip,
   ResponsiveContainer,
 } from "recharts";
@@ -14,24 +13,16 @@ import {
 interface ChartProps {
   data: {
     date: string;
-    Score: number;
+    "Daily Average": number;
   }[];
 }
 
-const CustomTooltip = ({
-  active,
-  payload,
-  label,
-}: {
-  active?: boolean;
-  payload?: any[];
-  label?: string;
-}) => {
+const CustomTooltip = ({ active, payload, label }: any) => {
   if (active && payload && payload.length) {
     return (
-      <div className="p-2 border bg-background rounded-md shadow-sm">
+      <div className="p-2 border bg-background/80 backdrop-blur-sm rounded-md shadow-sm">
         <p className="label font-semibold">{`Date: ${label}`}</p>
-        <p className="intro text-primary">{`Score: ${payload[0].value}%`}</p>
+        <p className="intro text-primary">{`Avg. Score: ${payload[0].value}%`}</p>
       </div>
     );
   }
@@ -41,16 +32,29 @@ const CustomTooltip = ({
 export default function ProgressChart({ data }: ChartProps) {
   return (
     <ResponsiveContainer width="100%" height={300}>
-      <LineChart
+      <AreaChart
         data={data}
         margin={{
-          top: 5,
-          right: 20,
-          left: -10,
-          bottom: 5,
+          top: 10,
+          right: 30,
+          left: 0,
+          bottom: 0,
         }}
       >
-        <CartesianGrid strokeDasharray="3 3" strokeOpacity={0.5} />
+        <defs>
+          <linearGradient id="colorScore" x1="0" y1="0" x2="0" y2="1">
+            <stop
+              offset="5%"
+              stopColor="hsl(var(--primary))"
+              stopOpacity={0.8}
+            />
+            <stop
+              offset="95%"
+              stopColor="hsl(var(--primary))"
+              stopOpacity={0}
+            />
+          </linearGradient>
+        </defs>
         <XAxis
           dataKey="date"
           stroke="hsl(var(--muted-foreground))"
@@ -66,16 +70,19 @@ export default function ProgressChart({ data }: ChartProps) {
           domain={[0, 100]}
           tickFormatter={(value) => `${value}%`}
         />
-        <Tooltip content={<CustomTooltip />} />
-        <Line
+        <Tooltip
+          content={<CustomTooltip />}
+          cursor={{ stroke: "hsl(var(--border))", strokeDasharray: "3 3" }}
+        />
+        <Area
           type="monotone"
-          dataKey="Score"
+          dataKey="Daily Average"
           stroke="hsl(var(--primary))"
           strokeWidth={2}
-          activeDot={{ r: 8 }}
-          dot={{ r: 4 }}
+          fillOpacity={1}
+          fill="url(#colorScore)"
         />
-      </LineChart>
+      </AreaChart>
     </ResponsiveContainer>
   );
 }

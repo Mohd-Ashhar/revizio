@@ -1,6 +1,7 @@
 // app/dashboard/page.tsx
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
+import { cn } from "@/lib/utils"; // <-- This is the missing import
 import {
   Table,
   TableBody,
@@ -75,18 +76,30 @@ export default async function DashboardPage() {
     totalMcqs > 0 ? ((totalCorrect / totalMcqs) * 100).toFixed(2) : "0";
 
   // --- PREPARE DATA FOR THE CHART ---
-  const chartData = typedAttempts
-    .map((attempt) => {
-      const total = attempt.quizzes?.quiz_content?.mcqs?.length || 0;
-      const percentage = total > 0 ? (attempt.score / total) * 100 : 0;
-      return {
-        date: new Date(attempt.created_at).toLocaleDateString("en-US", {
-          month: "short",
-          day: "numeric",
-        }),
-        Score: parseFloat(percentage.toFixed(2)),
-      };
-    })
+  const dailyScores: {
+    [date: string]: { totalPercent: number; count: number };
+  } = {};
+
+  typedAttempts.forEach((attempt) => {
+    const total = attempt.quizzes?.quiz_content?.mcqs?.length || 0;
+    const percentage = total > 0 ? (attempt.score / total) * 100 : 0;
+    const date = new Date(attempt.created_at).toLocaleDateString("en-US", {
+      month: "short",
+      day: "numeric",
+    });
+
+    if (!dailyScores[date]) {
+      dailyScores[date] = { totalPercent: 0, count: 0 };
+    }
+    dailyScores[date].totalPercent += percentage;
+    dailyScores[date].count++;
+  });
+
+  const chartData = Object.entries(dailyScores)
+    .map(([date, { totalPercent, count }]) => ({
+      date,
+      "Daily Average": parseFloat((totalPercent / count).toFixed(2)),
+    }))
     .reverse();
 
   // --- ANALYZE STRENGTHS AND WEAKNESSES ---
@@ -228,35 +241,56 @@ export default async function DashboardPage() {
             <CardHeader>
               <CardTitle>Your Quiz History</CardTitle>
             </CardHeader>
-            <CardContent className="max-h-[350px] overflow-y-auto">
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Coursebook</TableHead>
-                    <TableHead className="text-right">Date</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {typedAttempts.length > 0 ? (
-                    typedAttempts.slice(0, 10).map((attempt) => (
-                      <TableRow key={attempt.id}>
-                        <TableCell className="font-medium truncate max-w-[150px]">
-                          {attempt.quizzes?.pdfs?.file_name || "N/A"}
-                        </TableCell>
-                        <TableCell className="text-right text-muted-foreground">
-                          {new Date(attempt.created_at).toLocaleDateString()}
-                        </TableCell>
-                      </TableRow>
-                    ))
-                  ) : (
-                    <TableRow>
-                      <TableCell colSpan={3} className="text-center h-24">
-                        You haven&apos;t taken any quizzes yet.
-                      </TableCell>
-                    </TableRow>
-                  )}
-                </TableBody>
-              </Table>
+            <CardContent className="max-h-[350px] overflow-y-auto p-0">
+              <div className="space-y-4 p-6">
+                {typedAttempts.length > 0 ? (
+                  typedAttempts.slice(0, 10).map((attempt) => {
+                    const totalQuestions =
+                      attempt.quizzes?.quiz_content?.mcqs?.length || 0;
+                    const percentage =
+                      totalQuestions > 0
+                        ? (attempt.score / totalQuestions) * 100
+                        : 0;
+
+                    return (
+                      <div
+                        key={attempt.id}
+                        className="flex items-center justify-between gap-4"
+                      >
+                        <div className="flex items-center gap-3">
+                          <span
+                            className={cn(
+                              "h-2 w-2 rounded-full shrink-0",
+                              percentage >= 75
+                                ? "bg-green-500"
+                                : percentage >= 40
+                                ? "bg-yellow-500"
+                                : "bg-red-500"
+                            )}
+                          />
+                          <div className="truncate">
+                            <p className="font-medium truncate">
+                              {attempt.quizzes?.pdfs?.file_name || "N/A"}
+                            </p>
+                            <p className="text-xs text-muted-foreground">
+                              {new Date(
+                                attempt.created_at
+                              ).toLocaleDateString()}
+                            </p>
+                          </div>
+                        </div>
+                        <div className="font-semibold text-right">
+                          {attempt.score}/{totalQuestions}
+                        </div>
+                      </div>
+                    );
+                  })
+                ) : (
+                  <div className="text-center text-muted-foreground h-24 flex items-center justify-center">
+                    <p>You haven&apos;t taken any quizzes yet.</p>
+                  </div>
+                )}
+              </div>
             </CardContent>
           </Card>
         </div>
